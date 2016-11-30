@@ -1,0 +1,6 @@
+---
+applications:
+- name: swbot
+  memory: 256M
+  command: sh run.sh
+  buildpack: https://github.com/cloudfoundry/python-buildpack
