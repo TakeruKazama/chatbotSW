@@ -44,6 +44,7 @@ from autobahn.twisted.websocket import WebSocketServerFactory, \
     WebSocketServerProtocol, \
     listenWS
 
+from autobahn.twisted.resource import WebSocketResource
 
 class BroadcastServerProtocol(WebSocketServerProtocol):
 
@@ -76,15 +77,15 @@ class BroadcastServerFactory(WebSocketServerFactory):
     currently connected clients.
     """
 
-    def __init__(self):
-        WebSocketServerFactory.__init__(self)
+    def __init__(self, url):
+        WebSocketServerFactory.__init__(self, url)
         self.clients = []
         self.tickcount = 0
-        # self.tick()
+        #self.tick()
 
     def tick(self):
         self.tickcount += 1
-        self.broadcast("tick %d from server" % self.tickcount)
+        self.broadcast('{"text":"tick %d from server"}' % self.tickcount)
         reactor.callLater(1, self.tick)
 
     def register(self, client):
@@ -126,11 +127,15 @@ if __name__ == '__main__':
     ServerFactory = BroadcastServerFactory
     # ServerFactory = BroadcastPreparedServerFactory
 
-    factory = ServerFactory()
-    factory.protocol = BroadcastServerProtocol
-    # listenWS(factory)
+    bmxport = sys.argv[1]
 
-    # webdir = File(".")
-    # web = Site(webdir)
-    reactor.listenTCP(9000, factory)
+    factory = ServerFactory("ws://0.0.0.0:"+bmxport)
+    factory.protocol = BroadcastServerProtocol
+    resource = WebSocketResource(factory)
+
+    webdir = File("app")
+    webdir.putChild(b"ws", resource)
+
+    web = Site(webdir)
+    reactor.listenTCP(int(bmxport), web)
     reactor.run()

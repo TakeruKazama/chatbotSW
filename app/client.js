@@ -1,6 +1,6 @@
 'use strict';
 
-var ws = new WebSocket('ws://swbot.mybluemix.net/');
+var ws = new WebSocket("ws://" + location.host + "/ws");
 
 $(function () {
   $('form').submit(function(){
