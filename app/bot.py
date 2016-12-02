@@ -45,8 +45,9 @@ class min3Command(BotCommand):
     name = '3min'
 
     def process(self, command):
-        sleep(180)
-        return [self.pack(text='3分経ちました。')]
+        for i in range(1, 4):
+            sleep(60)
+            yield self.pack(text=str(i)+'分経ちました。')
 # ------------------------------------#
 
 

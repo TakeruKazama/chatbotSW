@@ -13,7 +13,12 @@ $(function () {
     return false;
   });
   ws.onmessage = function(msg){
+    if (msg.data.split(":")[0]=="tick") {
+      ws.send("tack");
+      return
+    }
     var resp = JSON.parse(msg.data);
+
     $('#messages')
       .append($('<li>')
       .append($('<span class="message">').text(resp.text)));
