@@ -1,31 +1,40 @@
 ## デプロイ情報
 #### サービスURL
-{http://example.com}
+https://swbot.mybluemix.net/
 
 #### リポジトリURL
-{https://github.com/uuuuu/rrrrr}
+https://github.com/TakeruKazama/chatbotSW
 
 #### 使用言語
-- {node / python / ruby / Go / etc.}
+- python3
+- javascript
 
 #### 主なライブラリ
-- {ws / websockets / em-websocket / websocket / etc.}
+- ws
+- autobahn
+- Twisted
 
 ####  ホスティングサービス
-- {AWS / DigitalOcean / Sakura / Heroku / etc.}
+- Bluemix
 
 ## 独自コマンドの実装
 #### 追加したコマンド
 ```
-bot {command} [parameters...]
+bot help
 ```
-
 #### コマンドの説明
+botで使えるコマンドの一覧とその説明を表示する
 
+#### 追加したコマンド
+```
+bot 3min
+```
+#### コマンドの説明
+3分経つと返事が帰ってくる。
 ## 創意工夫 & 作り込み
 #### 作り込んだコマンド / 機能
-どんな機能をを追加 / 作り込んだのか？
+3min / 途中で別のコマンドを打てる。
 
 #### 創意工夫したポイント
-基本仕様では規定されていなかった、自分で考えた仕様や
-独自コマンドや作り込みの時にどんなコンセプトや考えを持って作ったのか？
+コマンド毎に新しいスレッドを作って並列処理をするようにした。
+システムやBluemixの仕様で時間を取られてしまい、期限内にコマンドを作り込めなかったのでこの後ももう少し開発を続けようと思う。

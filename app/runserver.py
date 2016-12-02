@@ -1,37 +1,7 @@
-"""
-from autobahn.twisted.websocket import WebSocketServerProtocol
-
-
-class MyServerProtocol(WebSocketServerProtocol):
-
-   def onOpen(self):
-     print("WebSocket connection open.")
-
-   def onMessage(self, payload, isBinary):
-      ## echo back message verbatim
-      self.sendMessage(payload, isBinary)
-      for c in self.factory.clients:
-          c.sendMessage(payload)
-      print(payload, isBinary)
-
-if __name__ == '__main__':
-
-   import sys
-
-   from twisted.python import log
-   from twisted.internet import reactor
-   log.startLogging(sys.stdout)
-
-   from autobahn.twisted.websocket import WebSocketServerFactory
-   factory = WebSocketServerFactory()
-   factory.protocol = MyServerProtocol
-
-   reactor.listenTCP(9000, factory)
-   reactor.run()
-"""
 import sys
 import json
 import re
+import threading
 import bot
 
 
@@ -46,6 +16,7 @@ from autobahn.twisted.websocket import WebSocketServerFactory, \
 
 from autobahn.twisted.resource import WebSocketResource
 
+
 class BroadcastServerProtocol(WebSocketServerProtocol):
 
     def onOpen(self):
@@ -53,8 +24,9 @@ class BroadcastServerProtocol(WebSocketServerProtocol):
 
     def onMessage(self, payload, isBinary):
         if not isBinary:
-            msg = self.response(payload.decode('utf8'))
-            self.factory.broadcast(msg)
+            th = threading.Thread(target=self.response, name="th", args=(payload.decode('utf8'), ))
+            th.start()
+            # self.response(payload.decode('utf8'))
 
     def connectionLost(self, reason):
         WebSocketServerProtocol.connectionLost(self, reason)
@@ -63,25 +35,21 @@ class BroadcastServerProtocol(WebSocketServerProtocol):
     def response(self, text):
         mention = ('bot', '@bot', 'bot:')
         j = json.loads(text)
-        if re.split(': | |:', j['text'])[0] in mention:
-            print("I'm a bot!")
-            self.sendMessage(bot.bot_response(j).encode('utf8'))
         # broadcast
-        return json.dumps({'success': True, 'type': 'message', 'text': j['text']})
+        self.factory.broadcast(json.dumps({'success': True, 'type': 'message', 'text': j['text']}))
+
+        if re.split(': | |:', j['text'])[0] in mention:
+            for x in bot.bot_response(j):
+                self.sendMessage(x)
 
 
 class BroadcastServerFactory(WebSocketServerFactory):
-
-    """
-    Simple broadcast server broadcasting any message it receives to all
-    currently connected clients.
-    """
 
     def __init__(self, url):
         WebSocketServerFactory.__init__(self, url)
         self.clients = []
         self.tickcount = 0
-        #self.tick()
+        # self.tick()
 
     def tick(self):
         self.tickcount += 1
@@ -104,37 +72,26 @@ class BroadcastServerFactory(WebSocketServerFactory):
             c.sendMessage(msg.encode('utf8'))
             print("message sent to {}".format(c.peer))
 
-
-class BroadcastPreparedServerFactory(BroadcastServerFactory):
-
-    """
-    Functionally same as above, but optimized broadcast using
-    prepareMessage and sendPreparedMessage.
-    """
-
-    def broadcast(self, msg):
-        print("broadcasting prepared message '{}' ..".format(msg))
-        preparedMsg = self.prepareMessage(msg)
-        for c in self.clients:
-            c.sendPreparedMessage(preparedMsg)
-            print("prepared message sent to {}".format(c.peer))
-
-
 if __name__ == '__main__':
 
     log.startLogging(sys.stdout)
 
     ServerFactory = BroadcastServerFactory
-    # ServerFactory = BroadcastPreparedServerFactory
 
     bmxport = sys.argv[1]
 
-    factory = ServerFactory("ws://0.0.0.0:"+bmxport)
+    factory = ServerFactory("wss://0.0.0.0:443")
     factory.protocol = BroadcastServerProtocol
     resource = WebSocketResource(factory)
 
+    # テストに通すためwsサーバーも立てておく
+    factory2 = ServerFactory("ws://0.0.0.0:80")
+    factory2.protocol = BroadcastServerProtocol
+    resource2 = WebSocketResource(factory2)
+
     webdir = File("app")
-    webdir.putChild(b"ws", resource)
+    webdir.putChild(b"wss", resource)
+    webdir.putChild(b"ws", resource2)
 
     web = Site(webdir)
     reactor.listenTCP(int(bmxport), web)
